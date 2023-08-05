@@ -3,6 +3,7 @@ import { Card } from "../common/Card.js";
 import { I18n } from "../common/I18n.js";
 import { icons, rankIcon } from "../common/icons.js";
 import {
+  CustomError,
   clampValue,
   flexLayout,
   getCardColors,
@@ -16,6 +17,8 @@ const CARD_MIN_WIDTH = 287;
 const CARD_DEFAULT_WIDTH = 287;
 const RANK_CARD_MIN_WIDTH = 420;
 const RANK_CARD_DEFAULT_WIDTH = 450;
+const RANK_ONLY_CARD_MIN_WIDTH = 290;
+const RANK_ONLY_CARD_DEFAULT_WIDTH = 290;
 
 /**
  * Create a stats card text item.
@@ -30,7 +33,7 @@ const RANK_CARD_DEFAULT_WIDTH = 450;
  * @param {number} createTextNodeParams.shiftValuePos Number of pixels the value has to be shifted to the right.
  * @param {boolean} createTextNodeParams.bold Whether to bold the label.
  * @param {string} createTextNodeParams.number_format The format of numbers on card.
- * @returns
+ * @returns {string} The stats card text item SVG object.
  */
 const createTextNode = ({
   icon,
@@ -72,13 +75,18 @@ const createTextNode = ({
 };
 
 /**
+ * @typedef {import('../fetchers/types').StatsData} StatsData
+ * @typedef {import('./types').StatCardOptions} StatCardOptions
+ */
+
+/**
  * Renders the stats card.
  *
- * @param {Partial<import('../fetchers/types').StatsData>} stats The stats data.
- * @param {Partial<import("./types").StatCardOptions>} options The card options.
+ * @param {StatsData} stats The stats data.
+ * @param {Partial<StatCardOptions>} options The card options.
  * @returns {string} The stats card SVG object.
  */
-const renderStatsCard = (stats = {}, options = { hide: [] }) => {
+const renderStatsCard = (stats, options = {}) => {
   const {
     name,
     totalStars,
@@ -86,6 +94,8 @@ const renderStatsCard = (stats = {}, options = { hide: [] }) => {
     totalIssues,
     totalPRs,
     totalReviews,
+    totalDiscussionsStarted,
+    totalDiscussionsAnswered,
     contributedTo,
     rank,
   } = stats;
@@ -112,7 +122,7 @@ const renderStatsCard = (stats = {}, options = { hide: [] }) => {
     locale,
     disable_animations = false,
     rank_icon = "default",
-    show_total_reviews = false,
+    show = [],
   } = options;
 
   const lheight = parseInt(String(line_height), 10);
@@ -161,7 +171,7 @@ const renderStatsCard = (stats = {}, options = { hide: [] }) => {
     id: "prs",
   };
 
-  if (show_total_reviews) {
+  if (show.includes("reviews")) {
     STATS.reviews = {
       icon: icons.reviews,
       label: i18n.t("statcard.reviews"),
@@ -176,6 +186,24 @@ const renderStatsCard = (stats = {}, options = { hide: [] }) => {
     value: totalIssues,
     id: "issues",
   };
+
+  if (show.includes("discussions_started")) {
+    STATS.discussions_started = {
+      icon: icons.discussions_started,
+      label: i18n.t("statcard.discussions-started"),
+      value: totalDiscussionsStarted,
+      id: "discussions_started",
+    };
+  }
+  if (show.includes("discussions_answered")) {
+    STATS.discussions_answered = {
+      icon: icons.discussions_answered,
+      label: i18n.t("statcard.discussions-answered"),
+      value: totalDiscussionsAnswered,
+      id: "discussions_answered",
+    };
+  }
+
   STATS.contribs = {
     icon: icons.contribs,
     label: i18n.t("statcard.contribs"),
@@ -196,8 +224,9 @@ const renderStatsCard = (stats = {}, options = { hide: [] }) => {
     "de",
     "nl",
     "zh-tw",
+    "uz",
   ];
-  const isLongLocale = longLocales.includes(locale);
+  const isLongLocale = locale ? longLocales.includes(locale) : false;
 
   // filter out hidden stats defined by user & create the text nodes
   const statItems = Object.keys(STATS)
@@ -214,11 +243,18 @@ const renderStatsCard = (stats = {}, options = { hide: [] }) => {
       }),
     );
 
+  if (statItems.length === 0 && hide_rank) {
+    throw new CustomError(
+      "Could not render stats card.",
+      "Either stats or rank are required.",
+    );
+  }
+
   // Calculate the card height depending on how many items there are
   // but if rank circle is visible clamp the minimum height to `150`
   let height = Math.max(
     45 + (statItems.length + 1) * lheight,
-    hide_rank ? 0 : 150,
+    hide_rank ? 0 : statItems.length ? 150 : 180,
   );
 
   // the lower the user's percentile the better
@@ -233,7 +269,13 @@ const renderStatsCard = (stats = {}, options = { hide: [] }) => {
   });
 
   const calculateTextWidth = () => {
-    return measureText(custom_title ? custom_title : i18n.t("statcard.title"));
+    return measureText(
+      custom_title
+        ? custom_title
+        : statItems.length
+        ? i18n.t("statcard.title")
+        : i18n.t("statcard.ranktitle"),
+    );
   };
 
   /*
@@ -241,7 +283,7 @@ const renderStatsCard = (stats = {}, options = { hide: [] }) => {
     When hide_rank=false, the minimum card_width is 340 px + the icon width (if show_icons=true).
     Numbers are picked by looking at existing dimensions on production.
   */
-  const iconWidth = show_icons ? 16 + /* padding */ 1 : 0;
+  const iconWidth = show_icons && statItems.length ? 16 + /* padding */ 1 : 0;
   const minCardWidth =
     (hide_rank
       ? clampValue(
@@ -249,17 +291,29 @@ const renderStatsCard = (stats = {}, options = { hide: [] }) => {
           CARD_MIN_WIDTH,
           Infinity,
         )
-      : RANK_CARD_MIN_WIDTH) + iconWidth;
+      : statItems.length
+      ? RANK_CARD_MIN_WIDTH
+      : RANK_ONLY_CARD_MIN_WIDTH) + iconWidth;
   const defaultCardWidth =
-    (hide_rank ? CARD_DEFAULT_WIDTH : RANK_CARD_DEFAULT_WIDTH) + iconWidth;
-  let width = isNaN(card_width) ? defaultCardWidth : card_width;
+    (hide_rank
+      ? CARD_DEFAULT_WIDTH
+      : statItems.length
+      ? RANK_CARD_DEFAULT_WIDTH
+      : RANK_ONLY_CARD_DEFAULT_WIDTH) + iconWidth;
+  let width = card_width
+    ? isNaN(card_width)
+      ? defaultCardWidth
+      : card_width
+    : defaultCardWidth;
   if (width < minCardWidth) {
     width = minCardWidth;
   }
 
   const card = new Card({
     customTitle: custom_title,
-    defaultTitle: i18n.t("statcard.title"),
+    defaultTitle: statItems.length
+      ? i18n.t("statcard.title")
+      : i18n.t("statcard.ranktitle"),
     width,
     height,
     border_radius,
@@ -289,12 +343,16 @@ const renderStatsCard = (stats = {}, options = { hide: [] }) => {
    * @returns {number} - Rank circle translation value.
    */
   const calculateRankXTranslation = () => {
-    const minXTranslation = RANK_CARD_MIN_WIDTH + iconWidth - 70;
-    if (width > RANK_CARD_DEFAULT_WIDTH) {
-      const xMaxExpansion = minXTranslation + (450 - minCardWidth) / 2;
-      return xMaxExpansion + width - RANK_CARD_DEFAULT_WIDTH;
+    if (statItems.length) {
+      const minXTranslation = RANK_CARD_MIN_WIDTH + iconWidth - 70;
+      if (width > RANK_CARD_DEFAULT_WIDTH) {
+        const xMaxExpansion = minXTranslation + (450 - minCardWidth) / 2;
+        return xMaxExpansion + width - RANK_CARD_DEFAULT_WIDTH;
+      } else {
+        return minXTranslation + (width - minCardWidth) / 2;
+      }
     } else {
-      return minXTranslation + (width - minCardWidth) / 2;
+      return width / 2 + 20 - 10;
     }
   };
 
@@ -303,12 +361,12 @@ const renderStatsCard = (stats = {}, options = { hide: [] }) => {
     ? ""
     : `<g data-testid="rank-circle"
           transform="translate(${calculateRankXTranslation()}, ${
-        height / 2 - 50
-      })">
+            height / 2 - 50
+          })">
         <circle class="rank-circle-rim" cx="-10" cy="8" r="40" />
         <circle class="rank-circle" cx="-10" cy="8" r="40" />
         <g class="rank-text">
-          ${rankIcon(rank_icon, rank?.level)}
+          ${rankIcon(rank_icon, rank?.level, rank?.percentile)}
         </g>
       </g>`;
 

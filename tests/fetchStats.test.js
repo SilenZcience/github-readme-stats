@@ -3,6 +3,7 @@ import axios from "axios";
 import MockAdapter from "axios-mock-adapter";
 import { calculateRank } from "../src/calculateRank.js";
 import { fetchStats } from "../src/fetchers/stats-fetcher.js";
+import { expect, it, describe, beforeEach, afterEach } from "@jest/globals";
 
 // Test parameters.
 const data_stats = {
@@ -18,6 +19,8 @@ const data_stats = {
       openIssues: { totalCount: 100 },
       closedIssues: { totalCount: 100 },
       followers: { totalCount: 100 },
+      repositoryDiscussions: { totalCount: 10 },
+      repositoryDiscussionComments: { totalCount: 40 },
       repositories: {
         totalCount: 5,
         nodes: [
@@ -105,6 +108,7 @@ describe("Test fetchStats", () => {
       all_commits: false,
       commits: 100,
       prs: 300,
+      reviews: 50,
       issues: 200,
       repos: 5,
       stars: 300,
@@ -119,6 +123,8 @@ describe("Test fetchStats", () => {
       totalPRs: 300,
       totalReviews: 50,
       totalStars: 300,
+      totalDiscussionsStarted: 10,
+      totalDiscussionsAnswered: 40,
       rank,
     });
   });
@@ -136,6 +142,7 @@ describe("Test fetchStats", () => {
       all_commits: false,
       commits: 100,
       prs: 300,
+      reviews: 50,
       issues: 200,
       repos: 5,
       stars: 300,
@@ -150,6 +157,8 @@ describe("Test fetchStats", () => {
       totalPRs: 300,
       totalReviews: 50,
       totalStars: 300,
+      totalDiscussionsStarted: 10,
+      totalDiscussionsAnswered: 40,
       rank,
     });
   });
@@ -173,6 +182,7 @@ describe("Test fetchStats", () => {
       all_commits: true,
       commits: 1000,
       prs: 300,
+      reviews: 50,
       issues: 200,
       repos: 5,
       stars: 300,
@@ -187,6 +197,8 @@ describe("Test fetchStats", () => {
       totalPRs: 300,
       totalReviews: 50,
       totalStars: 300,
+      totalDiscussionsStarted: 10,
+      totalDiscussionsAnswered: 40,
       rank,
     });
   });
@@ -201,6 +213,7 @@ describe("Test fetchStats", () => {
       all_commits: true,
       commits: 1000,
       prs: 300,
+      reviews: 50,
       issues: 200,
       repos: 5,
       stars: 200,
@@ -215,6 +228,8 @@ describe("Test fetchStats", () => {
       totalPRs: 300,
       totalReviews: 50,
       totalStars: 200,
+      totalDiscussionsStarted: 10,
+      totalDiscussionsAnswered: 40,
       rank,
     });
   });
@@ -227,6 +242,7 @@ describe("Test fetchStats", () => {
       all_commits: false,
       commits: 100,
       prs: 300,
+      reviews: 50,
       issues: 200,
       repos: 5,
       stars: 400,
@@ -241,6 +257,8 @@ describe("Test fetchStats", () => {
       totalPRs: 300,
       totalReviews: 50,
       totalStars: 400,
+      totalDiscussionsStarted: 10,
+      totalDiscussionsAnswered: 40,
       rank,
     });
   });
@@ -253,6 +271,7 @@ describe("Test fetchStats", () => {
       all_commits: false,
       commits: 100,
       prs: 300,
+      reviews: 50,
       issues: 200,
       repos: 5,
       stars: 300,
@@ -267,6 +286,8 @@ describe("Test fetchStats", () => {
       totalPRs: 300,
       totalReviews: 50,
       totalStars: 300,
+      totalDiscussionsStarted: 10,
+      totalDiscussionsAnswered: 40,
       rank,
     });
   });
@@ -279,6 +300,7 @@ describe("Test fetchStats", () => {
       all_commits: false,
       commits: 100,
       prs: 300,
+      reviews: 50,
       issues: 200,
       repos: 5,
       stars: 300,
@@ -293,6 +315,8 @@ describe("Test fetchStats", () => {
       totalPRs: 300,
       totalReviews: 50,
       totalStars: 300,
+      totalDiscussionsStarted: 10,
+      totalDiscussionsAnswered: 40,
       rank,
     });
   });
