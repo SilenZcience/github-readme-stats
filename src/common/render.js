@@ -2,6 +2,8 @@
 
 import { SECONDARY_ERROR_MESSAGES, TRY_AGAIN_LATER } from "./error.js";
 import { getCardColors } from "./color.js";
+import { encodeHTML } from "./html.js";
+import { clampValue } from "./ops.js";
 
 /**
  * Auto layout utility, allows us to layout things vertically or horizontally with
@@ -45,6 +47,46 @@ const createLanguageNode = (langName, langColor) => {
 };
 
 /**
+ * Create a node to indicate progress in percentage along a horizontal line.
+ *
+ * @param {Object} params Object that contains the createProgressNode parameters.
+ * @param {number} params.x X-axis position.
+ * @param {number} params.y Y-axis position.
+ * @param {number} params.width Width of progress bar.
+ * @param {string} params.color Progress color.
+ * @param {number} params.progress Progress value.
+ * @param {string} params.progressBarBackgroundColor Progress bar bg color.
+ * @param {number} params.delay Delay before animation starts.
+ * @returns {string} Progress node.
+ */
+const createProgressNode = ({
+  x,
+  y,
+  width,
+  color,
+  progress,
+  progressBarBackgroundColor,
+  delay,
+}) => {
+  const progressPercentage = clampValue(progress, 2, 100);
+
+  return `
+    <svg width="${width}" x="${x}" y="${y}">
+      <rect rx="5" ry="5" x="0" y="0" width="${width}" height="8" fill="${progressBarBackgroundColor}"></rect>
+      <svg data-testid="lang-progress" width="${progressPercentage}%">
+        <rect
+            height="8"
+            fill="${color}"
+            rx="5" ry="5" x="0" y="0"
+            class="lang-progress"
+            style="animation-delay: ${delay}ms;"
+        />
+      </svg>
+    </svg>
+  `;
+};
+
+/**
  * Creates an icon with label to display repository/gist stats like forks, stars, etc.
  *
  * @param {string} icon The icon to display.
@@ -75,22 +117,6 @@ const iconWithLabel = (icon, label, testid, iconSize) => {
 
 // Script parameters.
 const ERROR_CARD_LENGTH = 576.5;
-
-/**
- * Encode string as HTML.
- *
- * @see https://stackoverflow.com/a/48073476/10629172
- *
- * @param {string} str String to encode.
- * @returns {string} Encoded string.
- */
-const encodeHTML = (str) => {
-  return str
-    .replace(/[\u00A0-\u9999<>&](?!#)/gim, (i) => {
-      return "&#" + i.charCodeAt(0) + ";";
-    })
-    .replace(/\u0008/gim, "");
-};
 
 const UPSTREAM_API_ERRORS = [
   TRY_AGAIN_LATER,
@@ -206,8 +232,8 @@ export {
   ERROR_CARD_LENGTH,
   renderError,
   createLanguageNode,
+  createProgressNode,
   iconWithLabel,
-  encodeHTML,
   flexLayout,
   measureText,
 };

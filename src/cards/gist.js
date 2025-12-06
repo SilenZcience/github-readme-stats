@@ -1,15 +1,15 @@
 // @ts-check
 
 import {
-  encodeHTML,
   measureText,
   flexLayout,
   iconWithLabel,
   createLanguageNode,
-} from "../common/utils.js";
+} from "../common/render.js";
 import Card from "../common/Card.js";
 import { getCardColors } from "../common/color.js";
 import { kFormatter, wrapTextMultiline } from "../common/fmt.js";
+import { encodeHTML } from "../common/html.js";
 import { icons } from "../common/icons.js";
 import { parseEmojis } from "../common/ops.js";
 
